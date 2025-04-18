@@ -21,8 +21,7 @@ if page == "📊 VL quotidienne":
     afficher_page_vl(prix_titres, positions, cash, benchmark)
 
 elif page == "📅 Positions mensuelles":
-
-    afficher_positions_mensuelles(jours_marche, prix_titres, positions, cash, vl, benchmark)
+    afficher_positions_mensuelles(jours_marche, prix_titres, positions, cash, vl, benchmark, ordres)
 
 elif page == "📈 Performance Globale":
     afficher_performance_globale(vl, benchmark)

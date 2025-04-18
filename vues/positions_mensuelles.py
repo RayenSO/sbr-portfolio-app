@@ -1,8 +1,9 @@
 import streamlit as st
 import pandas as pd
 from utils.performance import performance_metrics
+import plotly.express as px
 
-def afficher_positions_mensuelles(jours_marche, prix_titres, positions, cash, vl, benchmark):
+def afficher_positions_mensuelles(jours_marche, prix_titres, positions, cash, vl, benchmark, ordres):
     st.header("📅 Positions à la fin d’un mois sélectionné")
 
     prix_titres = prix_titres.set_index("Date").apply(pd.to_numeric, errors='coerce')
@@ -68,5 +69,41 @@ def afficher_positions_mensuelles(jours_marche, prix_titres, positions, cash, vl
                 df_perf.loc[row, col] = format_cell(row, df_perf.loc[row, col], col)
 
         st.dataframe(df_perf)
+        # === Bloc répartition sectorielle (camembert) ===
+        st.subheader("🥧 Répartition sectorielle (GICS Class)")
+
+        # Préparer les données GICS Class depuis la feuille Ordres
+        gics_map = ordres[["Ticker", "GICS Class"]].dropna().drop_duplicates(subset="Ticker", keep="last").set_index("Ticker")
+
+        # Positions du jour
+        positions_du_mois = pos[val.index]  # uniquement les titres détenus
+        prix_du_jour = prix_jour[val.index]
+
+        # Valorisation par titre
+        df_repartition = pd.DataFrame({
+            "Nb actions": positions_du_mois,
+            "Prix": prix_du_jour,
+        })
+        df_repartition["Valeur"] = df_repartition["Nb actions"] * df_repartition["Prix"]
+
+        # Ajouter GICS Class
+        df_repartition["GICS Class"] = df_repartition.index.map(gics_map["GICS Class"])
+
+        # Grouper par secteur
+        df_secteurs = df_repartition.groupby("GICS Class")["Valeur"].sum().sort_values(ascending=False)
+
+        # Affichage
+        st.dataframe(df_secteurs.to_frame("Valeur ($)").style.format("{:.2f}"))
+
+        # Affichage camembert
+        fig = px.pie(
+            df_secteurs.reset_index(),
+            values="Valeur",
+            names="GICS Class",
+            title="Répartition sectorielle du portefeuille",
+            hole=0.3  
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
     else:
         st.warning("Données insuffisantes pour calculer les métriques de performance.")
